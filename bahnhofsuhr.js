@@ -115,6 +115,15 @@ function Bahnhofsuhr(containerId, args){
 	// Border color
 	var borderColor =			args.borderColor 			=== undefined ? "#999999" : args.borderColor;
 
+	// Show the soft shadow the border ring casts onto the periphery of the dial, true or false. Has no effect unless showBorder is also true.
+	var showInnerShadow =		args.showInnerShadow 		=== undefined ? true : args.showInnerShadow;
+
+	// How far the inner shadow reaches inward from the face's edge, in percent of the clock diameter
+	var innerShadowWidth =		args.innerShadowWidth 		=== undefined ? 6 : args.innerShadowWidth;
+
+	// Inner shadow color at its darkest, right at the face's edge, fading to transparent towards the center. Include an alpha value, e.g. rgba(...)
+	var innerShadowColor =		args.innerShadowColor 		=== undefined ? "rgba(0, 0, 0, 0.25)" : args.innerShadowColor;
+
 	// Show Logo (or any image) on the clock face
 	var showLogo =				args.showLogo 				=== undefined ? false : args.showLogo;
 
@@ -322,6 +331,7 @@ function Bahnhofsuhr(containerId, args){
 		faceCtx.save();
 		
 		renderClockCircle();
+		renderInnerShadow();
 		renderFiveMinuteSteps();
 		renderMinuteSteps();
 	}
@@ -359,6 +369,56 @@ function Bahnhofsuhr(containerId, args){
 			);
 			faceCtx.fill();
 		}
+		
+		faceCtx.restore();
+	}
+		
+	// Returns an rgba(...) string with alpha forced to 0, for the transparent end of the inner-shadow gradient. Falls back to transparent black if the color can't be parsed.
+	function toTransparent(color){
+		var match = /rgba?\(([^)]+)\)/.exec(color);
+		
+		if(!match){
+			return "rgba(0, 0, 0, 0)";
+		}
+		
+		var channels = match[1].split(",");
+		
+		return "rgba(" + channels[0].trim() + ", " + channels[1].trim() + ", " + channels[2].trim() + ", 0)";
+	}
+		
+	// Render the soft shadow the border ring casts onto the edge of the dial
+	function renderInnerShadow(){
+		if(!showBorder || !showInnerShadow){
+			return;
+		}
+		
+		faceCtx.save();
+		
+		var outerRadius = defaultSize/2;
+		var innerRadius = Math.max(outerRadius - innerShadowWidth, 0);
+		
+		var gradient = faceCtx.createRadialGradient(
+			center,
+			center,
+			innerRadius,
+			center,
+			center,
+			outerRadius
+		);
+		gradient.addColorStop(0, toTransparent(innerShadowColor));
+		gradient.addColorStop(1, innerShadowColor);
+		
+		faceCtx.beginPath();
+		faceCtx.arc(
+			center,
+			center,
+			outerRadius,
+			0,
+			2 * Math.PI,
+			false
+		);
+		faceCtx.fillStyle = gradient;
+		faceCtx.fill();
 		
 		faceCtx.restore();
 	}
